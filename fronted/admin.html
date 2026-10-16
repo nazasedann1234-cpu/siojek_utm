@@ -1,0 +1,124 @@
+<!doctype html>
+<html lang="id">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>SIOJEK UTM - Dashboard Admin</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" />
+    <link rel="stylesheet" href="css/style.css" />
+  </head>
+  <body class="bg-gray-100 text-gray-800 font-sans min-h-screen flex flex-col justify-between">
+    <nav class="bg-blue-900 text-white shadow-md sticky top-0 z-40">
+      <div class="max-w-7xl mx-auto px-4 py-3 flex justify-between items-center">
+        <div class="flex items-center space-x-2">
+          <i class="fa-solid fa-motorcycle text-yellow-400 text-2xl"></i>
+          <span class="text-xl font-bold tracking-wide">SIOJEK <span class="text-yellow-400">UTM</span></span>
+        </div>
+
+        <div id="navUserMenu" class="hidden flex items-center space-x-3">
+          <span id="navUserInfo" class="text-xs bg-blue-800 px-3 py-1.5 rounded-full font-medium"></span>
+          <button onclick="logout()" class="bg-red-500 hover:bg-red-600 text-white text-xs font-bold px-3 py-1.5 rounded-lg transition"><i class="fa-solid fa-right-from-bracket mr-1"></i> Logout</button>
+        </div>
+      </div>
+    </nav>
+
+    <div id="adminSection" class="max-w-7xl mx-auto px-4 py-8 flex-grow w-full space-y-6">
+      <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 no-print">
+        <div>
+          <h1 class="text-2xl font-bold text-blue-900">Dashboard & Laporan Administrator</h1>
+          <p class="text-sm text-gray-600">Monitoring sistem, rekapitulasi transaksi, dan laporan pendapatan SIOJEK UTM</p>
+        </div>
+        <div class="flex gap-2">
+          <button onclick="window.print()" class="bg-green-600 hover:bg-green-700 text-white px-3.5 py-2 rounded-lg text-xs font-bold transition flex items-center gap-1.5"><i class="fa-solid fa-print"></i> Cetak Laporan</button>
+          <button onclick="clearData()" class="bg-red-100 text-red-600 px-3.5 py-2 rounded-lg text-xs font-bold hover:bg-red-200 transition">Reset Data</button>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 print-area">
+        <div class="bg-white p-5 rounded-2xl border border-gray-200 shadow-sm flex items-center justify-between">
+          <div>
+            <span class="text-xs text-gray-500 font-semibold uppercase">Total Pendapatan</span>
+            <h3 id="statTotalIncome" class="text-xl font-bold text-green-600 mt-1">Rp 0</h3>
+          </div>
+          <div class="w-10 h-10 rounded-xl bg-green-100 text-green-600 flex items-center justify-center font-bold text-lg">
+            <i class="fa-solid fa-money-bill-wave"></i>
+          </div>
+        </div>
+        <div class="bg-white p-5 rounded-2xl border border-gray-200 shadow-sm flex items-center justify-between">
+          <div>
+            <span class="text-xs text-gray-500 font-semibold uppercase">Pesanan Selesai</span>
+            <h3 id="statCompletedOrders" class="text-xl font-bold text-blue-900 mt-1">0</h3>
+          </div>
+          <div class="w-10 h-10 rounded-xl bg-blue-100 text-blue-900 flex items-center justify-center font-bold text-lg">
+            <i class="fa-solid fa-circle-check"></i>
+          </div>
+        </div>
+        <div class="bg-white p-5 rounded-2xl border border-gray-200 shadow-sm flex items-center justify-between">
+          <div>
+            <span class="text-xs text-gray-500 font-semibold uppercase">Sedang Berjalan</span>
+            <h3 id="statActiveOrders" class="text-xl font-bold text-amber-600 mt-1">0</h3>
+          </div>
+          <div class="w-10 h-10 rounded-xl bg-amber-100 text-amber-600 flex items-center justify-center font-bold text-lg">
+            <i class="fa-solid fa-spinner"></i>
+          </div>
+        </div>
+        <div class="bg-white p-5 rounded-2xl border border-gray-200 shadow-sm flex items-center justify-between">
+          <div>
+            <span class="text-xs text-gray-500 font-semibold uppercase">Total Transaksi</span>
+            <h3 id="statTotalOrders" class="text-xl font-bold text-gray-800 mt-1">0</h3>
+          </div>
+          <div class="w-10 h-10 rounded-xl bg-gray-100 text-gray-600 flex items-center justify-center font-bold text-lg">
+            <i class="fa-solid fa-list text-gray-700"></i>
+          </div>
+        </div>
+      </div>
+
+      <div class="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden print-area">
+        <div class="p-4 border-b bg-gray-50 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
+          <div class="font-bold text-gray-700">Laporan Rincian Transaksi</div>
+          <div class="flex items-center gap-2 no-print">
+            <label class="text-xs text-gray-500 font-semibold">Filter Status:</label>
+            <select id="adminFilterStatus" onchange="renderAdmin()" class="border text-xs rounded-lg p-1.5 focus:ring-1 focus:ring-blue-500 outline-none">
+              <option value="ALL">Semua Status</option>
+              <option value="Selesai">Selesai</option>
+              <option value="Dalam Perjalanan">Dalam Perjalanan</option>
+              <option value="Driver Menuju Lokasi">Driver Menuju Lokasi</option>
+              <option value="Mencari Driver">Mencari Driver</option>
+            </select>
+          </div>
+        </div>
+        <div class="overflow-x-auto">
+          <table class="w-full text-left border-collapse text-sm">
+            <thead>
+              <tr class="bg-gray-100 border-b text-gray-600 text-xs uppercase">
+                <th class="p-3">ID</th>
+                <th class="p-3">Penumpang</th>
+                <th class="p-3">Layanan</th>
+                <th class="p-3">Rute</th>
+                <th class="p-3">Tarif & Metode</th>
+                <th class="p-3">Driver</th>
+                <th class="p-3">Status</th>
+                <th class="p-3">Ulasan</th>
+              </tr>
+            </thead>
+            <tbody id="adminOrderTable">
+              <tr>
+                <td colspan="8" class="p-4 text-center text-gray-500">Belum ada transaksi.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <footer class="bg-blue-950 text-white text-center py-4 border-t border-blue-900 text-xs">
+      <p>&copy; 2026 SIOJEK UTM - Sistem Informasi Ojek Mahasiswa Universitas Trunojoyo Madura.</p>
+    </footer>
+
+    <script src="js/config.js"></script>
+    <script src="js/utils.js"></script>
+    <script src="js/session.js"></script>
+    <script src="js/admin.js"></script>
+  </body>
+</html>

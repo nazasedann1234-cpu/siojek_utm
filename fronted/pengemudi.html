@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="id">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>SIOJEK UTM - Portal Driver</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="css/style.css" />
+  </head>
+  <body class="bg-gray-100 text-gray-800 font-sans min-h-screen flex flex-col justify-between">
+    <nav class="bg-blue-900 text-white shadow-md sticky top-0 z-40">
+      <div class="max-w-7xl mx-auto px-4 py-3 flex justify-between items-center">
+        <div class="flex items-center space-x-2">
+          <i class="fa-solid fa-motorcycle text-yellow-400 text-2xl"></i>
+          <span class="text-xl font-bold tracking-wide">SIOJEK <span class="text-yellow-400">UTM</span></span>
+        </div>
+
+        <div id="navUserMenu" class="hidden flex items-center space-x-3">
+          <span id="navUserInfo" class="text-xs bg-blue-800 px-3 py-1.5 rounded-full font-medium"></span>
+          <button onclick="logout()" class="bg-red-500 hover:bg-red-600 text-white text-xs font-bold px-3 py-1.5 rounded-lg transition"><i class="fa-solid fa-right-from-bracket mr-1"></i> Logout</button>
+        </div>
+      </div>
+    </nav>
+
+    <div id="pengemudiSection" class="max-w-7xl mx-auto px-4 py-8 flex-grow w-full space-y-6">
+      <div class="bg-amber-500 text-white rounded-2xl p-6 shadow-lg flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+        <div>
+          <h1 class="text-2xl font-bold mb-1">Portal Driver SIOJEK</h1>
+          <p class="text-amber-100 text-sm">Selamat bertugas, <span id="driverName" class="font-bold underline"></span>!</p>
+        </div>
+        <div class="flex gap-4 bg-amber-600/50 p-3 rounded-xl border border-amber-400/30">
+          <div class="text-center px-3 border-r border-amber-400/30">
+            <span class="text-xs text-amber-100 block">Total Pendapatan</span>
+            <span id="driverTotalIncome" class="font-bold text-lg text-white">Rp 0</span>
+          </div>
+          <div class="text-center px-3">
+            <span class="text-xs text-amber-100 block">Rating Performa</span>
+            <span id="driverAvgRating" class="font-bold text-lg text-white">0.0</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div class="lg:col-span-2 space-y-6">
+          <div class="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
+            <h2 class="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2"><i class="fa-solid fa-bell text-amber-500"></i> Antrean & Pesanan Masuk</h2>
+            <div id="driverOrderList" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <p class="text-gray-500 text-sm text-center col-span-full py-4">Tidak ada pesanan masuk saat ini.</p>
+            </div>
+          </div>
+
+          <div class="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
+            <h2 class="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2"><i class="fa-solid fa-clock-rotate-left text-blue-600"></i> Riwayat Perjalanan Selesai</h2>
+            <div id="driverHistoryList" class="space-y-3">
+              <p class="text-gray-500 text-sm text-center py-4">Belum ada riwayat perjalanan selesai.</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="bg-white rounded-2xl shadow-sm border border-gray-200 p-6 h-fit">
+          <h2 class="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2"><i class="fa-solid fa-star text-yellow-400"></i> Ulasan Penumpang</h2>
+          <div id="driverReviewList" class="space-y-3">
+            <p class="text-gray-500 text-sm text-center py-4">Belum ada ulasan diterima.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <footer class="bg-blue-950 text-white text-center py-4 border-t border-blue-900 text-xs">
+      <p>&copy; 2026 SIOJEK UTM - Sistem Informasi Ojek Mahasiswa Universitas Trunojoyo Madura.</p>
+    </footer>
+
+    <script src="js/config.js"></script>
+    <script src="js/utils.js"></script>
+    <script src="js/session.js"></script>
+    <script src="js/driver.js"></script>
+  </body>
+</html>

@@ -1,0 +1,14 @@
+@media print {
+  nav,
+  footer,
+  .no-print {
+    display: none !important;
+  }
+  body {
+    background: white;
+  }
+  .print-area {
+    box-shadow: none;
+    border: none;
+  }
+}

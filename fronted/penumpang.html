@@ -1,0 +1,165 @@
+<!doctype html>
+<html lang="id">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>SIOJEK UTM - Portal Penumpang</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="css/style.css" />
+  </head>
+  <body class="bg-gray-100 text-gray-800 font-sans min-h-screen flex flex-col justify-between">
+    <nav class="bg-blue-900 text-white shadow-md sticky top-0 z-40">
+      <div class="max-w-7xl mx-auto px-4 py-3 flex justify-between items-center">
+        <div class="flex items-center space-x-2">
+          <i class="fa-solid fa-motorcycle text-yellow-400 text-2xl"></i>
+          <span class="text-xl font-bold tracking-wide">SIOJEK <span class="text-yellow-400">UTM</span></span>
+        </div>
+
+        <div id="navUserMenu" class="hidden flex items-center space-x-3">
+          <span id="navUserInfo" class="text-xs bg-blue-800 px-3 py-1.5 rounded-full font-medium"></span>
+          <button onclick="logout()" class="bg-red-500 hover:bg-red-600 text-white text-xs font-bold px-3 py-1.5 rounded-lg transition"><i class="fa-solid fa-right-from-bracket mr-1"></i> Logout</button>
+        </div>
+      </div>
+    </nav>
+
+    <div id="qrisModal" class="fixed inset-0 bg-black/60 z-50 flex items-center justify-center hidden p-4 no-print">
+      <div class="bg-white rounded-2xl p-6 max-w-sm w-full text-center shadow-xl space-y-4">
+        <div class="flex items-center justify-between gap-3">
+          <h3 class="text-lg font-bold text-blue-900">Pembayaran QRIS UTM</h3>
+          <button type="button" onclick="closeQrisModal()" aria-label="Tutup QRIS" class="text-2xl leading-none text-gray-500 hover:text-gray-800">&times;</button>
+        </div>
+        <p class="text-xs text-gray-500">Scan QR Code di bawah menggunakan GoPay, OVO, ShopeePay, DANA, atau M-Banking.</p>
+        <div class="bg-gray-100 p-4 rounded-xl flex justify-center border">
+          <img src="https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=SIOJEK-UTM-PAYMENT" alt="QRIS Code" class="rounded-lg shadow-sm" />
+        </div>
+        <div class="text-sm font-semibold text-gray-700">Total Bayar: <span id="qrisModalTotal" class="font-bold text-blue-900">Rp 3.000</span></div>
+        <button onclick="confirmQrisPayment()" class="w-full bg-green-600 text-white py-2.5 rounded-lg font-bold text-xs hover:bg-green-700 transition">Saya Sudah Bayar</button>
+      </div>
+    </div>
+
+    <div id="reviewModal" class="fixed inset-0 bg-black/60 z-50 flex items-center justify-center hidden p-4 no-print">
+      <div class="bg-white rounded-2xl p-6 max-w-sm w-full shadow-xl space-y-4">
+        <h3 class="text-lg font-bold text-blue-900 text-center">Beri Ulasan Perjalanan</h3>
+        <p class="text-xs text-gray-500 text-center">Bagaimana pengalaman perjalanan Anda bersama driver?</p>
+
+        <form onsubmit="submitReview(event)" class="space-y-3">
+          <input type="hidden" id="reviewOrderId" />
+          <div>
+            <label class="block text-xs font-semibold uppercase text-gray-600 mb-1">Rating</label>
+            <select id="reviewStars" required class="w-full p-2.5 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-sm">
+              <option value="5">(5/5) - Sangat Memuaskan</option>
+              <option value="4">(4/5) - Bagus</option>
+              <option value="3">(3/5) - Cukup</option>
+              <option value="2">(2/5) - Kurang</option>
+              <option value="1">(1/5) - Buruk</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-xs font-semibold uppercase text-gray-600 mb-1">Ulasan / Catatan</label>
+            <textarea id="reviewComment" rows="3" required class="w-full p-2.5 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-sm" placeholder="Contoh: Ramah, mengemudi aman, dan tepat waktu!"></textarea>
+          </div>
+          <div class="flex gap-2">
+            <button type="button" onclick="closeReviewModal()" class="w-1/2 bg-gray-200 text-gray-700 py-2 rounded-lg font-bold text-xs hover:bg-gray-300">Batal</button>
+            <button type="submit" class="w-1/2 bg-blue-900 text-white py-2 rounded-lg font-bold text-xs hover:bg-blue-800">Kirim Ulasan</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <div id="penumpangSection" class="max-w-7xl mx-auto px-4 py-8 flex-grow w-full">
+      <div class="bg-blue-900 text-white rounded-2xl p-6 mb-8 shadow-lg">
+        <h1 class="text-2xl font-bold mb-1">Portal Penumpang</h1>
+        <p class="text-blue-200 text-sm">Selamat datang, <span id="penumpangName" class="font-bold text-yellow-400"></span>!</p>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div class="md:col-span-2 bg-white p-6 rounded-2xl shadow-sm border border-gray-200">
+          <h2 class="text-lg font-bold text-blue-900 mb-4 flex items-center gap-2"><i class="fa-solid fa-map-location-dot text-yellow-500"></i> Buat Pesanan Ojek</h2>
+          <form id="orderForm" onsubmit="createOrder(event)" class="space-y-4">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label class="block text-xs font-semibold uppercase text-gray-600 mb-1">Titik Penjemputan</label>
+                <select id="pJemput" onchange="updateTarif()" required class="w-full p-2.5 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-sm">
+                  <option value="">-- Pilih Lokasi --</option>
+                  <option value="Gedung Rektorat">Gedung Rektorat</option>
+                  <option value="Fakultas Teknik">Fakultas Teknik</option>
+                  <option value="Fakultas Ekonomi & Bisnis">Fakultas Ekonomi & Bisnis</option>
+                  <option value="Asrama / Rusunawa">Asrama / Rusunawa</option>
+                  <option value="Telang Indah (Kos)">Telang Indah (Kos)</option>
+                </select>
+              </div>
+              <div>
+                <label class="block text-xs font-semibold uppercase text-gray-600 mb-1">Titik Tujuan</label>
+                <select id="pTujuan" onchange="updateTarif()" required class="w-full p-2.5 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-sm">
+                  <option value="">-- Pilih Tujuan --</option>
+                  <option value="Gedung Rektorat">Gedung Rektorat</option>
+                  <option value="Fakultas Teknik">Fakultas Teknik</option>
+                  <option value="Fakultas Ekonomi & Bisnis">Fakultas Ekonomi & Bisnis</option>
+                  <option value="Asrama / Rusunawa">Asrama / Rusunawa</option>
+                  <option value="Telang Indah (Kos)">Telang Indah (Kos)</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+              <div>
+                <label class="block text-xs font-semibold uppercase text-gray-600 mb-1">Jenis Kendaraan</label>
+                <select id="pJenis" onchange="updateTarif()" required class="w-full p-2.5 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-sm">
+                  <option value="Motor">Motor (kampus Rp 3.000 / luar kampus Rp 3.000 per km)</option>
+                  <option value="Mobil">Mobil (kampus Rp 8.000 / luar kampus Rp 8.000 per km)</option>
+                </select>
+              </div>
+              <div>
+                <label class="block text-xs font-semibold uppercase text-gray-600 mb-1">Perkiraan Harga</label>
+                <div class="w-full min-h-[42px] p-2.5 border border-blue-200 bg-blue-50 rounded-lg">
+                  <div class="flex items-center justify-between gap-2">
+                    <span class="text-xs text-blue-800 font-medium">Total perjalanan</span>
+                    <span id="pHargaCard" class="text-sm font-bold text-blue-900">Pilih rute</span>
+                  </div>
+                  <p id="pJarakCard" class="text-[11px] text-blue-700 mt-0.5">Jarak mengikuti titik jemput dan tujuan</p>
+                </div>
+              </div>
+              <div>
+                <label class="block text-xs font-semibold uppercase text-gray-600 mb-1">Metode Pembayaran</label>
+                <select id="pMetode" required class="w-full p-2.5 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-sm">
+                  <option value="Cash">Tunai (Cash)</option>
+                  <option value="QRIS">QRIS (E-Wallet/Bank)</option>
+                </select>
+              </div>
+              <div>
+                <label class="block text-xs font-semibold uppercase text-gray-600 mb-1">No. WhatsApp / HP</label>
+                <input type="tel" id="pWA" required readonly class="w-full p-2.5 border rounded-lg bg-gray-100 text-gray-600 cursor-not-allowed outline-none text-sm" placeholder="08xxxxxxxxxx" />
+              </div>
+            </div>
+
+            <div class="bg-blue-50 border border-blue-200 p-3 rounded-lg flex justify-between items-center text-sm text-blue-900 font-semibold">
+              <div>
+                <span>Estimasi Tarif:</span>
+                <p id="pJarak" class="text-[11px] text-blue-700 font-normal mt-0.5">Pilih titik jemput dan tujuan</p>
+              </div>
+              <span id="pTarif" class="text-base font-bold text-blue-900">Pilih rute</span>
+            </div>
+
+            <button type="submit" class="w-full bg-blue-900 text-white py-3 rounded-lg font-bold text-sm hover:bg-blue-800 transition">Pesan Ojek Sekarang</button>
+          </form>
+        </div>
+
+        <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-200">
+          <h2 class="text-lg font-bold text-blue-900 mb-4 flex items-center gap-2"><i class="fa-solid fa-route text-yellow-500"></i> Riwayat Pesanan</h2>
+          <div id="penumpangOrderList" class="space-y-3">
+            <p class="text-gray-500 text-sm text-center py-4">Belum ada pesanan.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <footer class="bg-blue-950 text-white text-center py-4 border-t border-blue-900 text-xs">
+      <p>&copy; 2026 SIOJEK UTM - Sistem Informasi Ojek Mahasiswa Universitas Trunojoyo Madura.</p>
+    </footer>
+
+    <script src="js/config.js"></script>
+    <script src="js/utils.js"></script>
+    <script src="js/session.js"></script>
+    <script src="js/penumpang.js"></script>
+  </body>
+</html>
