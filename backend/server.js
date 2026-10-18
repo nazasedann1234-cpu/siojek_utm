@@ -1,3 +1,9 @@
+const path = require("path");
+
+if (!process.env.VERCEL) {
+  require("dotenv").config({ path: path.join(__dirname, ".env.local"), override: true });
+}
+
 const express = require("express");
 const mysql = require("mysql2");
 const cors = require("cors");
@@ -16,39 +22,59 @@ function requireAdminKey(req, res, next) {
 }
 
 const db = mysql.createPool({
-  host: process.env.DB_HOST || "mysql-3b65dede-nazasedann1234-424f.e.aivencloud.com",
-  port: Number(process.env.DB_PORT || 20746),
-  user: process.env.DB_USER || "avnadmin",
-  password: process.env.DB_PASSWORD,
+  host: process.env.DB_HOST || (process.env.VERCEL ? undefined : "127.0.0.1"),
+  port: Number(process.env.DB_PORT || (process.env.VERCEL ? 0 : 3306)),
+  user: process.env.DB_USER || (process.env.VERCEL ? undefined : "root"),
+  password: process.env.DB_PASSWORD || "",
   database: process.env.DB_NAME || "siojek_utm",
   waitForConnections: true,
   connectionLimit: 5,
-  ssl: {
-    rejectUnauthorized: false,
-  },
+  connectTimeout: 10000,
+  ...(process.env.VERCEL ? { ssl: { rejectUnauthorized: false } } : {}),
 });
 
 let databaseReady;
 function ensureDatabaseReady() {
   if (!databaseReady) {
-    databaseReady = db
-      .promise()
-      .query("ALTER TABLE users ADD COLUMN approved TINYINT(1) NOT NULL DEFAULT 1")
-      .catch((err) => {
-        if (err.code === "ER_DUP_FIELDNAME") return;
-        databaseReady = null;
+    databaseReady = Promise.resolve().then(async () => {
+      if (
+        process.env.VERCEL &&
+        (!process.env.DB_HOST ||
+          !process.env.DB_PORT ||
+          !process.env.DB_USER ||
+          !process.env.DB_PASSWORD ||
+          !process.env.DB_NAME)
+      ) {
+        const err = new Error("Konfigurasi database Vercel belum lengkap.");
+        err.code = "DB_CONFIG_MISSING";
         throw err;
-      });
+      }
+      await db.promise().query("SELECT 1");
+    }).catch((err) => {
+      databaseReady = null;
+      throw err;
+    });
   }
   return databaseReady;
 }
+
+app.get("/api/health/db", async (req, res) => {
+  try {
+    await ensureDatabaseReady();
+    res.json({ status: "success", database: "connected" });
+  } catch (err) {
+    const code = err.code || "DB_CONNECTION_FAILED";
+    console.error("Pemeriksaan koneksi database gagal:", code, err.message);
+    res.status(503).json({ status: "error", database: "unavailable", code });
+  }
+});
 
 app.use(async (req, res, next) => {
   try {
     await ensureDatabaseReady();
     next();
   } catch (err) {
-    console.error("Gagal menyiapkan koneksi/database MySQL:", err.message);
+    console.error("Gagal menyiapkan koneksi/database MySQL:", err.code || "UNKNOWN", err.message);
     res.status(503).json({ status: "error", message: "Database sedang tidak tersedia." });
   }
 });
@@ -339,11 +365,16 @@ app.delete("/api/orders", (req, res) => {
 if (process.env.VERCEL) {
   module.exports = app;
 } else {
-  app.listen(3000, () => {
-    console.log("Server Backend berjalan di http://localhost:3000");
-    ensureDatabaseReady().then(
-      () => console.log("Terhubung ke MySQL Database!"),
-      (err) => console.error("Gagal konek ke MySQL:", err.message),
-    );
-  });
+  ensureDatabaseReady().then(
+    () => {
+      console.log("Terhubung ke MySQL Database!");
+      const port = Number(process.env.PORT || 3000);
+      app.listen(port, () => console.log(`Server Backend berjalan di http://localhost:${port}`));
+    },
+    (err) => {
+      console.error("Backend tidak dijalankan:", err.message);
+      db.end();
+      process.exitCode = 1;
+    },
+  );
 }

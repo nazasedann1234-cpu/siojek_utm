@@ -89,25 +89,29 @@ dan akun `root` tidak menggunakan password:
 mysql -u root < backend/database.sql
 ```
 
-Jika akun MySQL menggunakan password, tambahkan opsi `-p`. Untuk koneksi lokal,
-atur environment variables `DB_HOST`, `DB_PORT`, `DB_USER`, `DB_PASSWORD`, dan
-`DB_NAME` sebelum menjalankan backend. Tanpa konfigurasi tambahan, backend
-menggunakan host Aiven yang disetel di `backend/server.js`, user `avnadmin`,
-dan database `siojek_utm`.
+Jika akun MySQL menggunakan password, tambahkan opsi `-p`. Database lokal
+`siojek_utm` harus sudah ada di MySQL XAMPP. Konfigurasi default backend lokal
+menggunakan `127.0.0.1:3306`, user `root`, tanpa password, dan database
+`siojek_utm`.
 
 ### 2. Jalankan backend secara lokal
 
-Dari direktori project:
+Secara default backend menggunakan database MySQL lokal XAMPP. Jika pengaturan
+MySQL Anda berbeda, salin template ini menjadi `.env.local` di folder `backend`
+dan sesuaikan nilainya. File lokal tersebut diabaikan Git:
 
 ```powershell
 cd backend
+Copy-Item .env.example .env.local
+notepad .env.local
 npm install
 npm start
 ```
 
-Backend berjalan di `http://localhost:3000`. Biarkan terminal tetap berjalan.
-Jika koneksi database gagal, periksa bahwa MySQL aktif, database `siojek_utm`
-telah dibuat, dan kredensial pada `server.js` benar.
+Atur `DB_PASSWORD` di `.env.local` hanya jika MySQL lokal Anda memakai password.
+File `backend/.env.local` dimuat otomatis saat berjalan lokal. Backend hanya
+mulai mendengarkan di `http://localhost:3000` setelah koneksi dan persiapan
+database berhasil.
 
 ### 3. Jalankan frontend secara lokal
 
@@ -125,10 +129,19 @@ menyajikan file statis dari `fronted/`. Halaman utama diarahkan ke
 menggunakan `/api` pada domain Vercel dan tetap menggunakan
 `http://localhost:3000/api` saat dijalankan di localhost.
 
-Tambahkan environment variables berikut pada pengaturan project Vercel:
-`DB_HOST`, `DB_PORT`, `DB_USER`, `DB_PASSWORD`, dan `DB_NAME`. Pastikan database
+Tambahkan environment variables `DB_HOST`, `DB_PORT`, `DB_USER`, `DB_PASSWORD`,
+dan `DB_NAME` untuk Aiven pada pengaturan project Vercel. Pastikan database
 MySQL dapat menerima koneksi dari deployment Vercel. Jangan menyimpan password
 database di `vercel.json` atau source control.
+
+Setelah deploy, periksa `https://<domain-vercel-anda>/api/health/db`. Respons
+`{"status":"success","database":"connected"}` berarti koneksi berhasil. Jika
+gagal, `code` pada respons dan Runtime Logs Vercel membantu membedakan
+konfigurasi yang belum lengkap, kredensial salah, atau koneksi jaringan yang
+ditolak. Pastikan kelima environment variables di atas diatur untuk environment
+deployment yang sedang diuji (Production atau Preview), lalu redeploy. Jika
+Runtime Logs menunjukkan timeout/koneksi ditolak, periksa akses jaringan atau
+IP allowlist pada layanan Aiven.
 
 ### Akun demo
 
