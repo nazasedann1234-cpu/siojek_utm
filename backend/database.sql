@@ -8,6 +8,7 @@ CREATE TABLE users (
     password VARCHAR(255) NOT NULL,
     name VARCHAR(100) NOT NULL,
     role ENUM('penumpang', 'pengemudi', 'admin') NOT NULL,
+    approved TINYINT(1) NOT NULL DEFAULT 1,
     wa VARCHAR(20) NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );

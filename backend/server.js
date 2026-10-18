@@ -4,23 +4,53 @@ const cors = require("cors");
 
 const app = express();
 app.use(cors());
-app.use(express.json()); 
+app.use(express.json());
 
 const ADMIN_KEY = "aku_admin";
 
-const db = mysql.createConnection({
-  host: "localhost",
-  user: "root",
-  password: "",
-  database: "siojek_utm",
+function requireAdminKey(req, res, next) {
+  if (req.get("x-admin-key") !== ADMIN_KEY) {
+    return res.status(401).json({ status: "error", message: "Admin key salah." });
+  }
+  next();
+}
+
+const db = mysql.createPool({
+  host: process.env.DB_HOST || "mysql-3b65dede-nazasedann1234-424f.e.aivencloud.com",
+  port: Number(process.env.DB_PORT || 20746),
+  user: process.env.DB_USER || "avnadmin",
+  password: process.env.DB_PASSWORD,
+  database: process.env.DB_NAME || "siojek_utm",
+  waitForConnections: true,
+  connectionLimit: 5,
+  ssl: {
+    rejectUnauthorized: false,
+  },
 });
 
-db.connect((err) => {
-  if (err) {
-    console.error("Gagal konek ke MySQL:", err.message);
-    return;
+let databaseReady;
+function ensureDatabaseReady() {
+  if (!databaseReady) {
+    databaseReady = db
+      .promise()
+      .query("ALTER TABLE users ADD COLUMN approved TINYINT(1) NOT NULL DEFAULT 1")
+      .catch((err) => {
+        if (err.code === "ER_DUP_FIELDNAME") return;
+        databaseReady = null;
+        throw err;
+      });
   }
-  console.log("Terhubung ke MySQL Database!");
+  return databaseReady;
+}
+
+app.use(async (req, res, next) => {
+  try {
+    await ensureDatabaseReady();
+    next();
+  } catch (err) {
+    console.error("Gagal menyiapkan koneksi/database MySQL:", err.message);
+    res.status(503).json({ status: "error", message: "Database sedang tidak tersedia." });
+  }
 });
 
 
@@ -65,26 +95,37 @@ app.post("/api/register", (req, res) => {
   if (!username || !password || !name || !role || !wa) {
     return res.status(400).json({ status: "error", message: "Semua field wajib diisi." });
   }
+  if (!["penumpang", "pengemudi"].includes(role)) {
+    return res.status(400).json({ status: "error", message: "Role pendaftaran tidak valid." });
+  }
 
-  const query = "INSERT INTO users (username, password, name, role, wa) VALUES (?, ?, ?, ?, ?)";
-  db.query(query, [username, password, name, role, wa], (err) => {
+  const approved = role === "pengemudi" ? 0 : 1;
+  const query = "INSERT INTO users (username, password, name, role, wa, approved) VALUES (?, ?, ?, ?, ?, ?)";
+  db.query(query, [username, password, name, role, wa, approved], (err) => {
     if (err) {
       if (err.code === "ER_DUP_ENTRY") {
         return res.status(409).json({ status: "error", message: "NIM/Username sudah terdaftar!" });
       }
       return res.status(500).json({ status: "error", message: err.message });
     }
-    res.json({ status: "success", message: "Registrasi berhasil!" });
+    const message =
+      role === "pengemudi"
+        ? "Pendaftaran berhasil. Tunggu konfirmasi admin sebelum login."
+        : "Registrasi berhasil! Silakan login.";
+    res.json({ status: "success", message });
   });
 });
 
 app.post("/api/login", (req, res) => {
   const { username, password } = req.body;
-  const query = "SELECT id, username, name, role, wa FROM users WHERE username = ? AND password = ?";
+  const query = "SELECT id, username, name, role, wa, approved FROM users WHERE username = ? AND password = ?";
   db.query(query, [username, password], (err, rows) => {
     if (err) return res.status(500).json({ status: "error", message: err.message });
     if (rows.length === 0) {
       return res.status(401).json({ status: "error", message: "NIM/Username atau Password salah!" });
+    }
+    if (rows[0].role === "pengemudi" && !rows[0].approved) {
+      return res.status(403).json({ status: "error", message: "Pendaftaran driver Anda masih menunggu konfirmasi admin." });
     }
     res.json({ status: "success", user: rows[0] });
   });
@@ -218,6 +259,57 @@ app.get("/api/orders", (req, res) => {
   });
 });
 
+app.get("/api/admin/drivers", requireAdminKey, (req, res) => {
+  const query = `
+    SELECT id, username, name, wa, approved, created_at
+    FROM users
+    WHERE role = 'pengemudi'
+    ORDER BY approved ASC, created_at DESC
+  `;
+  db.query(query, (err, rows) => {
+    if (err) return res.status(500).json({ status: "error", message: err.message });
+    res.json({ status: "success", drivers: rows });
+  });
+});
+
+app.patch("/api/admin/drivers/:id/approve", requireAdminKey, (req, res) => {
+  const driverId = Number(req.params.id);
+  if (!Number.isInteger(driverId) || driverId < 1) {
+    return res.status(400).json({ status: "error", message: "ID driver tidak valid." });
+  }
+
+  const query = "UPDATE users SET approved = 1 WHERE id = ? AND role = 'pengemudi' AND approved = 0";
+  db.query(query, [driverId], (err, result) => {
+    if (err) return res.status(500).json({ status: "error", message: err.message });
+    if (result.affectedRows > 0) {
+      return res.json({ status: "success", message: "Pendaftaran driver berhasil dikonfirmasi." });
+    }
+
+    db.query("SELECT approved FROM users WHERE id = ? AND role = 'pengemudi'", [driverId], (lookupErr, rows) => {
+      if (lookupErr) return res.status(500).json({ status: "error", message: lookupErr.message });
+      if (rows.length === 0) {
+        return res.status(404).json({ status: "error", message: "Driver tidak ditemukan." });
+      }
+      res.status(409).json({ status: "error", message: "Driver sudah dikonfirmasi sebelumnya." });
+    });
+  });
+});
+
+app.delete("/api/admin/drivers/:id", requireAdminKey, (req, res) => {
+  const driverId = Number(req.params.id);
+  if (!Number.isInteger(driverId) || driverId < 1) {
+    return res.status(400).json({ status: "error", message: "ID driver tidak valid." });
+  }
+
+  db.query("DELETE FROM users WHERE id = ? AND role = 'pengemudi'", [driverId], (err, result) => {
+    if (err) return res.status(500).json({ status: "error", message: err.message });
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ status: "error", message: "Driver tidak ditemukan." });
+    }
+    res.json({ status: "success", message: "Driver berhasil dihapus." });
+  });
+});
+
 app.get("/api/admin/stats", (req, res) => {
   const query = `
     SELECT
@@ -244,4 +336,14 @@ app.delete("/api/orders", (req, res) => {
   });
 });
 
-app.listen(3000, () => console.log("Server Backend berjalan di http://localhost:3000"));
+if (process.env.VERCEL) {
+  module.exports = app;
+} else {
+  app.listen(3000, () => {
+    console.log("Server Backend berjalan di http://localhost:3000");
+    ensureDatabaseReady().then(
+      () => console.log("Terhubung ke MySQL Database!"),
+      (err) => console.error("Gagal konek ke MySQL:", err.message),
+    );
+  });
+}

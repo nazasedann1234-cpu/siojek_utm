@@ -54,18 +54,29 @@ function getTarifAmount(jemput, tujuan, jenis) {
 }
 
 async function apiCall(path, options = {}) {
+  let res;
   try {
-    const res = await fetch(`${API_BASE}${path}`, {
+    res = await fetch(`${API_BASE}${path}`, {
       headers: { "Content-Type": "application/json" },
       ...options,
     });
-    const data = await res.json();
-    if (!res.ok || data.status === "error") {
-      throw new Error(data.message || "Terjadi kesalahan pada server.");
-    }
-    return data;
   } catch (err) {
     alert("Gagal terhubung ke server: " + err.message + "\nPastikan backend (server.js) sedang berjalan di http://localhost:3000");
     throw err;
   }
+
+  let data;
+  try {
+    data = await res.json();
+  } catch (err) {
+    const error = new Error("Respons server tidak valid.");
+    alert(error.message);
+    throw error;
+  }
+  if (!res.ok || data.status === "error") {
+    const error = new Error(data.message || "Terjadi kesalahan pada server.");
+    alert(error.message);
+    throw error;
+  }
+  return data;
 }

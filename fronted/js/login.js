@@ -40,14 +40,18 @@ async function handleRegister(e) {
   const pass = document.getElementById("regPass").value;
 
   try {
-    await apiCall("/register", {
+    const data = await apiCall("/register", {
       method: "POST",
       body: JSON.stringify({ username: user, password: pass, name, role, wa }),
     });
-    alert("Registrasi berhasil! Silakan login.");
+    alert(data.message);
     toggleAuthMode("login");
-    document.getElementById("loginUser").value = user;
-    document.getElementById("loginPass").value = pass;
+    if (role === "penumpang") {
+      document.getElementById("loginUser").value = user;
+      document.getElementById("loginPass").value = pass;
+    } else {
+      document.getElementById("loginPass").value = "";
+    }
     e.target.reset();
   } catch (err) {
     // Pesan error (mis. "NIM/Username sudah terdaftar!") sudah ditampilkan oleh apiCall

@@ -11,7 +11,7 @@ fronted/                    # Folder frontend (nama folder sesuai project saat i
   login.html                # Login dan pendaftaran akun
   penumpang.html            # Pemesanan, pembayaran demo, riwayat, rating
   pengemudi.html            # Antrean, proses perjalanan, pendapatan, ulasan
-  admin.html                # Statistik, laporan transaksi, reset transaksi
+  admin.html                # Manajemen driver, statistik, dan laporan transaksi
   css/
     style.css               # Styling cetak laporan
   js/
@@ -21,7 +21,7 @@ fronted/                    # Folder frontend (nama folder sesuai project saat i
     login.js                # Login dan registrasi
     penumpang.js            # Fitur portal penumpang
     driver.js               # Fitur portal pengemudi
-    admin.js                # Fitur dashboard administrator
+    admin.js                # Manajemen driver dan dashboard administrator
 backend/
   server.js                 # REST API Express dan koneksi MySQL
   database.sql              # Pembuatan database, tabel, dan akun demo
@@ -35,7 +35,8 @@ backend/
 ## Fitur
 
 - **Login dan pendaftaran:** pengguna dapat mendaftar sebagai penumpang atau
-  pengemudi. Akun administrator disediakan sebagai akun demo.
+  pengemudi. Pendaftaran driver menunggu konfirmasi admin sebelum akun dapat
+  digunakan. Akun administrator disediakan sebagai akun demo.
 - **Penumpang:** memilih lokasi jemput dan tujuan, jenis kendaraan (motor atau
   mobil), serta metode pembayaran cash atau QRIS; melihat estimasi jarak/tarif,
   status dan riwayat pesanan; memberi rating 1–5 dan ulasan setelah perjalanan
@@ -43,13 +44,18 @@ backend/
 - **Pengemudi:** melihat antrean pesanan yang belum ditolak, menerima atau
   menolak pesanan, memperbarui status perjalanan, melihat riwayat dan total
   pendapatan, serta melihat rating dan ulasan penumpang.
-- **Administrator:** melihat total pendapatan dari pesanan selesai, jumlah
-  pesanan selesai/aktif/seluruhnya, memfilter tabel transaksi berdasarkan
-  status, mencetak laporan, dan menghapus seluruh transaksi setelah memasukkan
-  admin key `aku_admin`.
+- **Administrator:** mengonfirmasi pendaftaran dan menghapus akun driver,
+  melihat total pendapatan dari pesanan selesai, jumlah pesanan
+  selesai/aktif/seluruhnya, memfilter tabel transaksi berdasarkan status,
+  mencetak laporan, dan menghapus seluruh transaksi setelah memasukkan admin
+  key `aku_admin`.
 - **Akses halaman:** halaman portal memeriksa role yang tersimpan di browser dan
   mengarahkan pengguna yang belum login atau role-nya tidak sesuai kembali ke
   halaman login.
+
+Kolom persetujuan driver ditambahkan otomatis saat backend pertama kali
+dijalankan pada database lama. Akun driver yang sudah ada tetap aktif; driver
+yang mendaftar setelah perubahan harus disetujui admin.
 
 ### Status perjalanan
 
@@ -83,12 +89,13 @@ dan akun `root` tidak menggunakan password:
 mysql -u root < backend/database.sql
 ```
 
-Jika akun MySQL menggunakan password, tambahkan opsi `-p`. Sesuaikan juga
-konfigurasi koneksi di `backend/server.js` agar cocok dengan pengaturan MySQL
-lokal (`host`, `user`, `password`, dan `database`). Konfigurasi bawaan memakai
-host `localhost`, user `root`, password kosong, dan database `siojek_utm`.
+Jika akun MySQL menggunakan password, tambahkan opsi `-p`. Untuk koneksi lokal,
+atur environment variables `DB_HOST`, `DB_PORT`, `DB_USER`, `DB_PASSWORD`, dan
+`DB_NAME` sebelum menjalankan backend. Tanpa konfigurasi tambahan, backend
+menggunakan host Aiven yang disetel di `backend/server.js`, user `avnadmin`,
+dan database `siojek_utm`.
 
-### 2. Jalankan backend
+### 2. Jalankan backend secara lokal
 
 Dari direktori project:
 
@@ -102,13 +109,26 @@ Backend berjalan di `http://localhost:3000`. Biarkan terminal tetap berjalan.
 Jika koneksi database gagal, periksa bahwa MySQL aktif, database `siojek_utm`
 telah dibuat, dan kredensial pada `server.js` benar.
 
-### 3. Jalankan frontend
+### 3. Jalankan frontend secara lokal
 
 Buka folder project di VS Code, lalu jalankan `fronted/login.html` menggunakan
 Live Server (atau server file statis lain). Mulai dari halaman login, bukan
 langsung membuka portal. Frontend menggunakan API di
 `http://localhost:3000/api`; ubah `API_BASE` pada `fronted/js/config.js` bila
 alamat backend berbeda.
+
+### Deploy ke Vercel
+
+`vercel.json` membangun `backend/server.js` sebagai Node.js Function dan
+menyajikan file statis dari `fronted/`. Halaman utama diarahkan ke
+`fronted/login.html`; permintaan `/api/*` diteruskan ke Express. Frontend
+menggunakan `/api` pada domain Vercel dan tetap menggunakan
+`http://localhost:3000/api` saat dijalankan di localhost.
+
+Tambahkan environment variables berikut pada pengaturan project Vercel:
+`DB_HOST`, `DB_PORT`, `DB_USER`, `DB_PASSWORD`, dan `DB_NAME`. Pastikan database
+MySQL dapat menerima koneksi dari deployment Vercel. Jangan menyimpan password
+database di `vercel.json` atau source control.
 
 ### Akun demo
 
@@ -140,6 +160,9 @@ Semua endpoint menggunakan prefix `/api`. Request dengan body mengirim JSON.
 | `POST` | `/orders/:id/review` | Menambahkan rating dan ulasan |
 | `GET` | `/orders` | Mengambil seluruh transaksi untuk laporan admin |
 | `GET` | `/admin/stats` | Mengambil ringkasan statistik admin |
+| `GET` | `/admin/drivers` | Mengambil daftar driver; perlu header `x-admin-key: aku_admin` |
+| `PATCH` | `/admin/drivers/:id/approve` | Mengonfirmasi pendaftaran driver; perlu header `x-admin-key: aku_admin` |
+| `DELETE` | `/admin/drivers/:id` | Menghapus akun driver; perlu header `x-admin-key: aku_admin` |
 | `DELETE` | `/orders` | Menghapus seluruh transaksi; perlu body JSON `{"admin_key":"aku_admin"}` |
 
 ## Catatan batasan demo
