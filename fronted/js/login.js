@@ -21,14 +21,11 @@ function goToPortal(role) {
 function toggleAuthMode(mode) {
   const loginCard = document.getElementById("loginCard");
   const regCard = document.getElementById("registerCard");
+  const recoveryCard = document.getElementById("recoveryCard");
 
-  if (mode === "register") {
-    loginCard.classList.add("hidden");
-    regCard.classList.remove("hidden");
-  } else {
-    regCard.classList.add("hidden");
-    loginCard.classList.remove("hidden");
-  }
+  loginCard.classList.toggle("hidden", mode !== "login");
+  regCard.classList.toggle("hidden", mode !== "register");
+  recoveryCard.classList.toggle("hidden", mode !== "recovery");
 }
 
 async function handleRegister(e) {
@@ -72,5 +69,35 @@ async function handleLogin(e) {
     saveCurrentUser(data.user);
     goToPortal(data.user.role);
   } catch (err) {
+  }
+}
+
+async function handleRecovery(e) {
+  e.preventDefault();
+  const result = document.getElementById("recoveryResult");
+  result.classList.add("hidden");
+
+  try {
+    const data = await apiCall("/account-recovery", {
+      method: "POST",
+      body: JSON.stringify({
+        name: document.getElementById("recoveryName").value.trim(),
+        wa: document.getElementById("recoveryWA").value.trim(),
+        newPassword: document.getElementById("recoveryPass").value,
+      }),
+    });
+
+    result.textContent = data.message;
+    result.className = "text-sm rounded-lg p-3 bg-green-50 text-green-800";
+    result.classList.remove("hidden");
+    document.getElementById("loginUser").value = data.username;
+    if (document.getElementById("recoveryPass").value) {
+      document.getElementById("loginPass").value = document.getElementById("recoveryPass").value;
+    }
+    document.getElementById("recoveryPass").value = "";
+  } catch (err) {
+    result.textContent = err.message;
+    result.className = "text-sm rounded-lg p-3 bg-red-50 text-red-700";
+    result.classList.remove("hidden");
   }
 }

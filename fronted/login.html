@@ -39,6 +39,9 @@
               </button>
             </div>
           </div>
+          <div class="text-right -mt-2">
+            <button type="button" onclick="toggleAuthMode('recovery')" class="text-xs text-blue-700 font-semibold hover:underline">Lupa username atau password?</button>
+          </div>
           <button type="submit" class="w-full bg-blue-900 text-white py-2.5 rounded-lg font-bold text-sm hover:bg-blue-800 transition">Masuk Sekarang</button>
         </form>
 
@@ -109,6 +112,42 @@
             Sudah punya akun?
             <button onclick="toggleAuthMode('login')" class="text-blue-700 font-bold hover:underline">Kembali ke Login</button>
           </p>
+        </div>
+      </div>
+
+      <div id="recoveryCard" class="bg-white p-8 rounded-2xl shadow-md border border-gray-200 w-full max-w-md hidden">
+        <div class="text-center mb-6">
+          <i class="fa-solid fa-key text-blue-900 text-4xl mb-2"></i>
+          <h1 class="text-2xl font-bold text-blue-900">Pulihkan Akun</h1>
+          <p class="text-xs text-gray-500 mt-1">Masukkan nama dan WhatsApp yang terdaftar</p>
+        </div>
+
+        <form onsubmit="handleRecovery(event)" class="space-y-4">
+          <div>
+            <label for="recoveryName" class="block text-xs font-semibold uppercase text-gray-600 mb-1">Nama Lengkap</label>
+            <input type="text" id="recoveryName" required maxlength="100" autocomplete="name"
+              class="w-full p-2.5 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-sm"
+              placeholder="Sesuai nama saat mendaftar" />
+          </div>
+          <div>
+            <label for="recoveryWA" class="block text-xs font-semibold uppercase text-gray-600 mb-1">WhatsApp Terdaftar</label>
+            <input type="tel" id="recoveryWA" required maxlength="16" inputmode="tel" autocomplete="tel"
+              class="w-full p-2.5 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-sm"
+              placeholder="08xxxxxxxxxx" />
+          </div>
+          <div>
+            <label for="recoveryPass" class="block text-xs font-semibold uppercase text-gray-600 mb-1">Password Baru <span class="normal-case font-normal">(opsional)</span></label>
+            <input type="password" id="recoveryPass" minlength="8" maxlength="72" autocomplete="new-password"
+              class="w-full p-2.5 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-sm"
+              placeholder="Isi jika ingin mengganti password" />
+            <p class="text-xs text-gray-500 mt-1">Kosongkan jika hanya ingin mengetahui username.</p>
+          </div>
+          <p id="recoveryResult" class="hidden text-sm rounded-lg p-3" role="status" aria-live="polite"></p>
+          <button type="submit" class="w-full bg-blue-900 text-white py-2.5 rounded-lg font-bold text-sm hover:bg-blue-800 transition">Pulihkan Akun</button>
+        </form>
+
+        <div class="mt-4 text-center">
+          <button onclick="toggleAuthMode('login')" class="text-xs text-blue-700 font-bold hover:underline">Kembali ke Login</button>
         </div>
       </div>
     </div>

@@ -157,6 +157,36 @@ app.post("/api/login", (req, res) => {
   });
 });
 
+app.post("/api/account-recovery", (req, res) => {
+  const name = String(req.body.name || "").trim();
+  const wa = String(req.body.wa || "").replace(/\D/g, "");
+  const newPassword = String(req.body.newPassword || "");
+  if (!name || !wa) {
+    return res.status(400).json({ status: "error", message: "Nama dan nomor WhatsApp wajib diisi." });
+  }
+  if (newPassword && (newPassword.length < 8 || newPassword.length > 72)) {
+    return res.status(400).json({ status: "error", message: "Password baru harus terdiri dari 8 sampai 72 karakter." });
+  }
+
+  db.query("SELECT id, username, wa FROM users WHERE LOWER(name) = LOWER(?) AND role != 'admin'", [name], (err, rows) => {
+    if (err) return res.status(500).json({ status: "error", message: "Pemulihan akun gagal diproses." });
+    const matchedUsers = rows.filter((user) => String(user.wa).replace(/\D/g, "") === wa);
+    if (matchedUsers.length !== 1) {
+      return res.status(404).json({ status: "error", message: "Data tidak cocok. Pastikan nama dan WhatsApp sama seperti saat mendaftar." });
+    }
+
+    const user = matchedUsers[0];
+    if (!newPassword) {
+      return res.json({ status: "success", username: user.username, message: `Username Anda: ${user.username}` });
+    }
+
+    db.query("UPDATE users SET password = ? WHERE id = ?", [newPassword, user.id], (updateErr) => {
+      if (updateErr) return res.status(500).json({ status: "error", message: "Password baru gagal disimpan." });
+      res.json({ status: "success", username: user.username, message: `Username ditemukan dan password berhasil diperbarui.` });
+    });
+  });
+});
+
 
 
 app.post("/api/orders", (req, res) => {

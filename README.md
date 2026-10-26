@@ -34,9 +34,11 @@ backend/
 
 ## Fitur
 
-- **Login dan pendaftaran:** pengguna dapat mendaftar sebagai penumpang atau
-  pengemudi. Pendaftaran driver menunggu konfirmasi admin sebelum akun dapat
-  digunakan. Akun administrator disediakan sebagai akun demo.
+- **Login, pendaftaran, dan pemulihan akun:** pengguna dapat mendaftar sebagai
+  penumpang atau pengemudi. Pendaftaran driver menunggu konfirmasi admin sebelum
+  akun dapat digunakan. Pengguna dapat mencari username dan/atau mengganti
+  password dengan nama lengkap serta nomor WhatsApp yang terdaftar. Akun admin
+  tidak dapat dipulihkan melalui fitur ini.
 - **Penumpang:** memilih lokasi jemput dan tujuan, jenis kendaraan (motor atau
   mobil), serta metode pembayaran cash atau QRIS; melihat estimasi jarak/tarif,
   status dan riwayat pesanan; memberi rating 1–5 dan ulasan setelah perjalanan
@@ -163,6 +165,7 @@ Semua endpoint menggunakan prefix `/api`. Request dengan body mengirim JSON.
 |---|---|---|
 | `POST` | `/register` | Membuat akun penumpang/pengemudi |
 | `POST` | `/login` | Memeriksa username dan password |
+| `POST` | `/account-recovery` | Mencocokkan nama dan WhatsApp terdaftar untuk menampilkan username dan opsional mengganti password |
 | `POST` | `/orders` | Membuat pesanan dan menghitung tarif |
 | `GET` | `/orders/penumpang/:passengerId` | Melihat pesanan penumpang beserta driver dan ulasan |
 | `GET` | `/orders/driver/:driverId` | Melihat pesanan yang belum selesai dan belum ditolak driver |
@@ -185,6 +188,10 @@ Semua endpoint menggunakan prefix `/api`. Request dengan body mengirim JSON.
 - Password saat ini disimpan dan dibandingkan sebagai teks biasa di database.
   Implementasi ini hanya untuk demo/tugas; aplikasi produksi perlu hashing
   password dan pengamanan autentikasi yang sesuai.
+- Pemulihan akun demo hanya mencocokkan nama lengkap dan nomor WhatsApp yang
+  tersimpan; sistem belum mengirim OTP atau memverifikasi kepemilikan nomor.
+  Jangan gunakan mekanisme ini untuk akun produksi sebelum menambahkan verifikasi
+  OTP melalui penyedia WhatsApp/SMS dan hashing password.
 - Pemeriksaan role di portal dilakukan di frontend melalui `localStorage`.
   Endpoint backend saat ini belum menerapkan autentikasi/otorisasi, sehingga
   mekanisme tersebut bukan perlindungan keamanan untuk penggunaan produksi.
